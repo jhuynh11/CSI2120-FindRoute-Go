@@ -10,27 +10,41 @@ import (
 	"fmt"
 	//"errors"
 	"math"
-	//"os"
+	"io/ioutil"
+	"encoding/json"
+	"os"
+	"strconv"
 )
 
-type node struct {
+type Node struct {
 
 }
 
-type tree struct {
+type Tree struct {
 
 }
 
-type edge struct {
-	poolA pool
-	poolB pool
+type Edge struct {
+	poolA Pool
+	poolB Pool
 	distance float64
 }
 
-type pool struct {
-	name string
-	lat float64
-	lon float64
+type coordinates[2]float64
+
+type geometry struct {
+	//coordinates []float64
+	Coordinates coordinates
+}
+
+type properties struct {
+	NAME string	
+	Geometry geometry	
+}
+
+type Pool struct {
+	Properties properties
+	Geometry geometry	
 }
 
 /*func findRoute (filename string, num int) (route []Edge){
@@ -41,11 +55,24 @@ func saveRoute(route []Edge, filename string)(bool){
 
 }*/
 
+func FloatToString(input_num float64) string {
+    // to convert a float number to a string
+    return strconv.FormatFloat(input_num, 'f', 6, 64)
+}
+
 func main () {
-
-res := euclidDistance(45.421016, -75.690018, 45.4222, -75.6824)
-
-fmt.Printf("%v", res)
+	raw, err := ioutil.ReadFile("wading-pools-min.json")
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+	
+	var p []Pool
+	json.Unmarshal(raw, &p)
+	for i:= range p{
+		fmt.Println(p[i].Properties.NAME + " [" +  FloatToString(p[i].Geometry.Coordinates[0]) + ", " + FloatToString(p[i].Geometry.Coordinates[1]) + "]") 
+	}
+	
 
 }
 
