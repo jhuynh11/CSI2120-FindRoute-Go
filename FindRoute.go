@@ -14,13 +14,18 @@ import (
 	"encoding/json"
 	"os"
 	"strconv"
+	"sort"
 )
 
 type Node struct {
-
+	parent Node
+	info Pool
+	children []Node
 }
 
 type Tree struct {
+	root Node
+	route []Pool
 
 }
 
@@ -32,8 +37,8 @@ type Edge struct {
 
 type coordinates[2]float64
 
+//For parsing the JSON file
 type geometry struct {
-	//coordinates []float64
 	Coordinates coordinates
 }
 
@@ -47,11 +52,41 @@ type Pool struct {
 	Geometry geometry	
 }
 
-/*func findRoute (filename string, num int) (route []Edge){
+func findRoute (filename string, num int) (route []Edge){
 
+	//Read and convert the JSON file
+	raw, err := ioutil.ReadFile(filename)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+	var p []Pool
+	json.Unmarshal(raw, &p)
+	
+	//Sort the pools from west to east
+	sort.Slice(p, func(i, j int) bool{
+		return p[i].Geometry.Coordinates[1] < p[j].Geometry.Coordinates[1]
+	})
+	for i:= range p{
+		fmt.Println(p[i].Properties.NAME + " [" +  FloatToString(p[i].Geometry.Coordinates[0]) + ", " + FloatToString(p[i].Geometry.Coordinates[1]) + "]") 
+	}	
+	
+	//Store the most Western pool as the root node in tree
+	
+	
+	//Connect the closest pool with an edge as the child of the root
+	
+	//For each pool from West to East, connect the node for the pool
+	//with an edge as the child of the closest node in the tree
+	
+
+	
+	
+	num += 1
+	return route
 }
 
-func saveRoute(route []Edge, filename string)(bool){
+/*func saveRoute(route []Edge, filename string)(bool){
 
 }*/
 
@@ -61,17 +96,7 @@ func FloatToString(input_num float64) string {
 }
 
 func main () {
-	raw, err := ioutil.ReadFile("wading-pools-min.json")
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-	
-	var p []Pool
-	json.Unmarshal(raw, &p)
-	for i:= range p{
-		fmt.Println(p[i].Properties.NAME + " [" +  FloatToString(p[i].Geometry.Coordinates[0]) + ", " + FloatToString(p[i].Geometry.Coordinates[1]) + "]") 
-	}
+	findRoute("wading-pools-min.json", 1)
 	
 
 }
