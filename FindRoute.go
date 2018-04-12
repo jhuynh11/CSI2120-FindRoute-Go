@@ -18,16 +18,52 @@ import (
 )
 
 type Node struct {
-	parent Node
+	parent *Node
 	info Pool
 	children []Node
 }
 
+func newNode(p Pool)(n Node){
+	n.info = p
+	fmt.Println("ADDING NEW NODE : " + n.info.toString())
+	return n
+}
+
+func (n *Node) addChild(child Node){
+	child.parent = n
+	n.children = append(n.children, child)
+}
+
+
 type Tree struct {
 	root Node
 	route []Pool
-
 }
+
+func (t *Tree) addRoot(p Pool){
+	t.root = newNode(p)
+	t.root.parent = nil
+}
+
+func (t *Tree) addNode(u Node, p Pool){
+	child := newNode(p)
+	u.addChild(child)
+}
+
+func (t *Tree) addEdge(root Node, closestPool Pool, newPool Pool){
+	if root != nil {
+		if root.info == closestPool {
+			fmt.Println("EDGE CREATED from: " + root.info.toString() + " to " + newPool.toString)
+			t.addNode(root, newPool)
+		}
+		for i := range root.children {
+			t.addEdge(root.children[i], closestPool, newPool)
+		}
+	}
+}
+
+
+
 
 type Edge struct {
 	poolA Pool
@@ -52,6 +88,10 @@ type Pool struct {
 	Geometry geometry	
 }
 
+func (p Pool) toString() string {
+	return p.Properties.NAME + " [" +  FloatToString(p.Geometry.Coordinates[0]) + ", " + FloatToString(p.Geometry.Coordinates[1]) + "]"
+}
+
 func findRoute (filename string, num int) (route []Edge){
 
 	//Read and convert the JSON file
@@ -67,20 +107,50 @@ func findRoute (filename string, num int) (route []Edge){
 	sort.Slice(p, func(i, j int) bool{
 		return p[i].Geometry.Coordinates[1] < p[j].Geometry.Coordinates[1]
 	})
+	fmt.Println("POOLS SORTED FROM WEST TO EAST")
 	for i:= range p{
-		fmt.Println(p[i].Properties.NAME + " [" +  FloatToString(p[i].Geometry.Coordinates[0]) + ", " + FloatToString(p[i].Geometry.Coordinates[1]) + "]") 
+		fmt.Println(p[i].toString())
 	}	
 	
 	//Store the most Western pool as the root node in tree
+	var t Tree
+	t.addRoot(p[0])
+
+	//Add each pool from west to east into the tree, where edges are made between the closest pools
+	closestPool := p[0]
+	closestDistance := 9999.9
+	mostRecentPool := 0 //Index of the most recently added pool to the tree
+	var currentDistance float64
 	
-	
-	//Connect the closest pool with an edge as the child of the root
+	//Find the closest pool
+	for i := range p {
+		for j := 0; j <= mostRecentPool; j++){
+			currentDistance = euclidDistance(p[i].Geometry.Coordinates[1],
+											 p[i].Geometry.Coordinates[0],
+											 p[j].Geometry.Coordinates[1],
+											 p[j].Geometry.Coordinates[0])
+			
+			if currentDistance < closestDistance
+			{
+				closestDistance = currentDistance
+				closestPool = p[j]
+			}
+			//Create an edge between the closest pool and the new pool
+			t.addEdge(t.root, closestPool, p[i])
+			closestDistance = 9999.9
+			mostRecentPool++
+		}
+		edges := t.preOrder(t.root)
+		//Create an edge between the closest pool and the new pool
+		
+											 
+											 
+	//Connect the closest pool as a child of the root
+	/*t.root.addChild(newNode(p[1]))
+	fmt.Println("THE CHILD IS : " + t.root.children[0].info.toString())*/
 	
 	//For each pool from West to East, connect the node for the pool
 	//with an edge as the child of the closest node in the tree
-	
-
-	
 	
 	num += 1
 	return route
