@@ -15,6 +15,7 @@ import (
 	"os"
 	"strconv"
 	"sort"
+	//"time"
 )
 
 type Node struct {
@@ -25,7 +26,7 @@ type Node struct {
 
 func newNode(p Pool)(n Node){
 	n.info = p
-	fmt.Println("ADDING NEW NODE : " + n.info.toString())
+	//fmt.Println("ADDED NODE : " + n.info.toString())
 	return n
 }
 
@@ -37,7 +38,8 @@ func (n *Node) addChild(child Node){
 
 type Tree struct {
 	root Node
-	route []Pool
+	//route []Pool
+	route Edge
 }
 
 func (t *Tree) addRoot(p Pool){
@@ -45,30 +47,40 @@ func (t *Tree) addRoot(p Pool){
 	t.root.parent = nil
 }
 
-func (t *Tree) addNode(u Node, p Pool){
+func (t *Tree) addNode(u *Node, p Pool){
 	child := newNode(p)
 	u.addChild(child)
 }
 
-func (t *Tree) addEdge(root Node, closestPool Pool, newPool Pool){
+func (t *Tree) preOrder(root *Node) {
 	if root != nil {
-		if root.info == closestPool {
-			fmt.Println("EDGE CREATED from: " + root.info.toString() + " to " + newPool.toString)
-			t.addNode(root, newPool)
-		}
+		fmt.Println("Added " + root.info.toString() + " to route")
+		t.route.pools = append(t.route.pools, root.info)
+		
 		for i := range root.children {
-			t.addEdge(root.children[i], closestPool, newPool)
+			t.preOrder(&root.children[i])
 		}
 	}
 }
 
-
+func (t *Tree) addEdge(root *Node, closestPool Pool, newPool Pool) bool{
+	if root != nil {
+		if root.info == closestPool {
+			fmt.Println("EDGE CREATED from: " + root.info.toString() + " to " + newPool.toString())
+			t.addNode(root, newPool)
+			return true
+		}
+		for i := 0; i < len(root.children); i++{//for i := range root.children {
+			//fmt.Println("Child is : " + root.children[i].info.toString()) 
+			t.addEdge(&root.children[i], closestPool, newPool)
+		}
+	}
+	return true
+}
 
 
 type Edge struct {
-	poolA Pool
-	poolB Pool
-	distance float64
+	pools []Pool
 }
 
 type coordinates[2]float64
@@ -105,7 +117,7 @@ func findRoute (filename string, num int) (route []Edge){
 	
 	//Sort the pools from west to east
 	sort.Slice(p, func(i, j int) bool{
-		return p[i].Geometry.Coordinates[1] < p[j].Geometry.Coordinates[1]
+		return p[i].Geometry.Coordinates[0] < p[j].Geometry.Coordinates[0]
 	})
 	fmt.Println("POOLS SORTED FROM WEST TO EAST")
 	for i:= range p{
@@ -123,28 +135,28 @@ func findRoute (filename string, num int) (route []Edge){
 	var currentDistance float64
 	
 	//Find the closest pool
-	for i := range p {
-		for j := 0; j <= mostRecentPool; j++){
+	for i :=  1; i < len(p); i++ {
+		for j := 0; j <= mostRecentPool; j++{
 			currentDistance = euclidDistance(p[i].Geometry.Coordinates[1],
 											 p[i].Geometry.Coordinates[0],
 											 p[j].Geometry.Coordinates[1],
 											 p[j].Geometry.Coordinates[0])
 			
-			if currentDistance < closestDistance
-			{
+			if currentDistance < closestDistance {
 				closestDistance = currentDistance
 				closestPool = p[j]
 			}
+		}
 			//Create an edge between the closest pool and the new pool
-			t.addEdge(t.root, closestPool, p[i])
+			ok := t.addEdge(&t.root, closestPool, p[i])
+			if ok == true {
+				num += 1
+			}
 			closestDistance = 9999.9
 			mostRecentPool++
 		}
-		edges := t.preOrder(t.root)
-		//Create an edge between the closest pool and the new pool
-		
-											 
-											 
+	//t.preOrder(&t.root)
+						 
 	//Connect the closest pool as a child of the root
 	/*t.root.addChild(newNode(p[1]))
 	fmt.Println("THE CHILD IS : " + t.root.children[0].info.toString())*/
@@ -168,7 +180,6 @@ func FloatToString(input_num float64) string {
 func main () {
 	findRoute("wading-pools-min.json", 1)
 	
-
 }
 
 func euclidDistance(lat1, lon1, lat2, lon2 float64)(dRadians float64){
