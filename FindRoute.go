@@ -15,7 +15,7 @@ import (
 	"os"
 	"strconv"
 	"sort"
-	//"time"
+	"bufio"
 )
 
 type Node struct {
@@ -104,7 +104,7 @@ func (p Pool) toString() string {
 	return p.Properties.NAME + " [" +  FloatToString(p.Geometry.Coordinates[0]) + ", " + FloatToString(p.Geometry.Coordinates[1]) + "]"
 }
 
-func findRoute (filename string, num int) (route []Edge){
+func findRoute (filename string, num int) (Edge){
 
 	//Read and convert the JSON file
 	raw, err := ioutil.ReadFile(filename)
@@ -149,28 +149,40 @@ func findRoute (filename string, num int) (route []Edge){
 		}
 			//Create an edge between the closest pool and the new pool
 			ok := t.addEdge(&t.root, closestPool, p[i])
-			if ok == true {
-				num += 1
-			}
+			if ok == true {}
 			closestDistance = 9999.9
 			mostRecentPool++
 		}
-	//t.preOrder(&t.root)
-						 
-	//Connect the closest pool as a child of the root
-	/*t.root.addChild(newNode(p[1]))
-	fmt.Println("THE CHILD IS : " + t.root.children[0].info.toString())*/
-	
-	//For each pool from West to East, connect the node for the pool
-	//with an edge as the child of the closest node in the tree
-	
+	t.preOrder(&t.root)
+
 	num += 1
-	return route
+	return t.route
 }
 
-/*func saveRoute(route []Edge, filename string)(bool){
-
-}*/
+func saveRoute(route Edge, filename string)(bool){
+	totalDistance := 0.0
+	
+	file, err := os.Create(filename)
+	if err != nil {
+		fmt.Printf("Cannot create file to write")
+	}
+	defer file.Close()
+	
+	w := bufio.NewWriter(file)
+	
+	fmt.Fprintln(w, route.pools[0].Properties.NAME + " " + FloatToString(totalDistance) + "\r\n") //Root pool, distance is 0 by default
+	for i := 1; i < len(route.pools); i++{
+		totalDistance += euclidDistance(route.pools[i - 1].Geometry.Coordinates[1],
+										route.pools[i - 1].Geometry.Coordinates[0],
+										route.pools[i].Geometry.Coordinates[1],
+										route.pools[i].Geometry.Coordinates[0])
+			
+		fmt.Fprintln(w, route.pools[i].Properties.NAME + " " + FloatToString(totalDistance) + "\r\n")
+	}
+	w.Flush()
+	return true
+	
+}
 
 func FloatToString(input_num float64) string {
     // to convert a float number to a string
@@ -178,8 +190,12 @@ func FloatToString(input_num float64) string {
 }
 
 func main () {
-	findRoute("wading-pools-min.json", 1)
+	fmt.Println("Enter the number of go routines to use:")
+	var num int
+	fmt.Scanf("%d\n", &num)
 	
+	route := findRoute("wading-pools-min.json", num)
+	fmt.Printf("%v", saveRoute(route, "solution.txt"))
 }
 
 func euclidDistance(lat1, lon1, lat2, lon2 float64)(dRadians float64){
